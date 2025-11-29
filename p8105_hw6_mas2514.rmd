@@ -23,3 +23,73 @@ options(
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
+
+## Problem 1
+
+The code below imports the `homicide-data` dataset from the Washington Post. This dataset consists of individual homicide records collected from 50 large U.S. cities. Each row represents a single homicide case, and the variables provide information about the victim, the circumstances of the homicide, and the status of the investigation. Key variables include the `city` and `state` in which the homicide occurred, the `reported_date` of the homicide, the approximate geographic location of the homicide given by `longitude` and `latitude`, and `disposition` which represents the investigative status of the case. 
+
+```{r}
+homicide_df <- read_csv("data/homicide-data.csv")
+```
+
+
+The code below creates a `clean_homicide_df` dataset, which includes a city-level summary of the homicide data. The `city` and `state` variables are combined into a single`city_state` variable. A binary `solved` variable is created to indicate whether the homeicide was resolved by arrest. Cities that do not report the race of the homicide victim are omitted. A misclassified city  “Tulsa, AL” is removed.Victim race is limited to "White" or "Black" for analysis purposes. 
+
+```{r}
+clean_homicide_df <- 
+  homicide_df |> 
+  unite(city_state, city, state, sep = ", ") |> 
+  mutate(
+    solved = as.numeric(disposition == "Closed by arrest"), 
+    victim_age = as.numeric(victim_age)
+  ) |> 
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", 
+                         "Tulsa, AL")) |> 
+  filter(
+    victim_race %in% c("White", "Black")
+  ) 
+```
+
+
+The code below fits a logistic regression to the Baltimore, MD data with solved vs unsolved as the outcome and victim age, sex and race as predictors. 
+
+```{r}
+baltimore_df <- 
+  clean_homicide_df |> 
+  filter(
+    city_state == "Baltimore, MD"
+  ) |> 
+  select(solved, victim_age, victim_sex, victim_race)
+
+fit_logistic = 
+  baltimore_df |> 
+  glm(solved ~ victim_age + victim_race + victim_sex, data = _, family = binomial()) 
+
+fit_logistic |> 
+  broom::tidy() |> 
+  mutate(OR = exp(estimate)) |>
+  select(term, log_OR = estimate, OR, p.value) |> 
+  knitr::kable(digits = 3)
+```
+
+In Baltimore, MD, homicides in which the victim is male are significantly less likely to be solved than those in which the victim was female.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
