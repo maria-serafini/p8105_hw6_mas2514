@@ -61,18 +61,69 @@ baltimore_df <-
   ) |> 
   select(solved, victim_age, victim_sex, victim_race)
 
-fit_logistic = 
+baltimore_logfit = 
   baltimore_df |> 
   glm(solved ~ victim_age + victim_race + victim_sex, data = _, family = binomial()) 
 
-fit_logistic |> 
-  broom::tidy() |> 
-  mutate(OR = exp(estimate)) |>
-  select(term, log_OR = estimate, OR, p.value) |> 
+baltimore_results <- 
+  baltimore_logfit |> 
+  broom::tidy(conf.int = TRUE, exponentiate = TRUE) |> 
+  filter(term == "victim_sexMale") |> 
+  select(term, 
+         OR = estimate,
+         CI_lower = conf.low,
+         CI_upper = conf.high, 
+         p.value)
+
+baltimore_results |> 
   knitr::kable(digits = 3)
 ```
 
-In Baltimore, MD, homicides in which the victim is male are significantly less likely to be solved than those in which the victim was female.
+In Baltimore, MD, the adjusted odds ratio for solving homicides comparing male to female victims is approximately 0.43 (95% CI: 0.32, 0.56), indicating that homicides with male victims have substantially lower odds of being solved than those with female victims, after adjusting for age and race.
+
+
+
+```{r}
+city_glm_results <- 
+  clean_homicide_df |> 
+  nest(data = -city_state) |> 
+  mutate(
+    fits = map(data, \(df) glm(solved ~ victim_age + victim_race + victim_sex, data = df, 
+                               family = binomial())), 
+    results = map(fits, broom::tidy, conf.int = TRUE, exponentiate = TRUE)
+  ) |> 
+  unnest(results) |> 
+  filter(term == "victim_sexMale") |> 
+  select(
+    city_state, 
+    OR = estimate,
+    CI_lower = conf.low,
+    CI_upper = conf.high,
+    p.value
+  )
+
+city_glm_results |> 
+  knitr::kable(digits = 3)
+```
+
+
+Overall, the plot below shows that in most cities, homicides involving male victims have lower adjusted odds of being solved than those involving female victims, and in roughly half of the cities this difference is statistically significant. A small number of cities have odds ratios above 1, but wide confidence intervals that include 1, indicating substantial uncertainty rather than strong evidence of a reversal of this pattern.
+
+
+```{r, fig.width=10, fig.height=10}
+city_glm_results |> 
+  mutate(city_state = fct_reorder(city_state, OR)) |> 
+  ggplot(aes(x = OR, y = city_state)) + 
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  geom_errorbarh(aes(xmin = CI_lower, xmax = CI_upper), height = 0.2) +
+  geom_point() + 
+  labs(
+    title = "Adjusted Odds of Resolved Homicide in Male vs Female Victims By City",
+    x = "Adjusted Odds Ratio (Male vs Female Victims)",
+    y = "City"
+  ) +
+  theme(axis.text.y = element_text(size = 8)) 
+```
 
 
 
