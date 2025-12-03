@@ -276,3 +276,35 @@ birthweight_df <-
 birthweight_df |> 
   summarise(across(everything(), ~ sum(is.na(.))))
 ```
+
+
+The code below fits a proposed linear regression model for birthweight that incorporates a set of biologically and clinically relevant predictors. This model includes infant head circumference, birth length, gestational age, maternal pre-pregnancy BMI, maternal weight gain during pregnancy, number of cigarettes smoked per day, infant sex, paternal race, and parity. These variables were selected to capture fetal size at birth, duration of gestation, maternal health and pregnancy-related behaviors, and demographic factors that may influence birth outcomes.
+
+```{r, proposed_model}
+birth_wt_model <- 
+  lm(birth_wt ~ head_circumference + birth_length + gestational_age + mom_pre_bmi +
+                         mom_wt_gain + count_smoke + sex + dad_race + parity, data = birthweight_df)
+
+birth_wt_model |> 
+  broom::tidy()
+
+birth_wt_model |> 
+  broom::glance()
+```
+
+
+The code below creates a residuals-versus-fitted plot using `add_predictions()` and `add_residuals()` to evaluate model assumptions. The plot shows residuals centered around zero with no strong evidence of curvature or heteroskedasticity, suggesting that the linear model form is broadly appropriate for these predictors.
+
+```{r}
+birthweight_df |> 
+  add_predictions(birth_wt_model) |> 
+  add_residuals(birth_wt_model) |> 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    x = "Fitted Birthweight (Grams)",
+    y = "Residuals",
+    title = "Residuals vs Fitted Values for Proposed Model"
+  )
+```
