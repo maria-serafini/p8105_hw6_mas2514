@@ -9,6 +9,8 @@ library(tidyverse)
 library(p8105.datasets)
 
 knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
   fig.width = 6,
   fig.asp = .6,
   out.width = "90%"
@@ -80,9 +82,8 @@ baltimore_results |>
   knitr::kable(digits = 3)
 ```
 
+
 In Baltimore, MD, the adjusted odds ratio for solving homicides comparing male to female victims is approximately 0.43 (95% CI: 0.32, 0.56), indicating that homicides with male victims have substantially lower odds of being solved than those with female victims, after adjusting for age and race.
-
-
 
 ```{r}
 city_glm_results <- 
@@ -110,7 +111,6 @@ city_glm_results |>
 
 Overall, the plot below shows that in most cities, homicides involving male victims have lower adjusted odds of being solved than those involving female victims, and in roughly half of the cities this difference is statistically significant. A small number of cities have odds ratios above 1, but wide confidence intervals that include 1, indicating substantial uncertainty rather than strong evidence of a reversal of this pattern.
 
-
 ```{r, fig.width=10, fig.height=10}
 city_glm_results |> 
   mutate(city_state = fct_reorder(city_state, OR)) |> 
@@ -130,13 +130,14 @@ city_glm_results |>
 
 ## Problem 2
 
-Load the central park weather data. 
+The code below imports the Central Park weather data from p8105.datasets. This dataset contains daily meteorological observations recorded in New York City, including minimum and maximum temperature (`tmin`, `tmax`) and total daily precipitation (`prcp`). 
 
 ```{r}
 data("weather_df")
 ```
 
 
+The code below generates 5000 bootstrap samples from the original dataset and fits the linear regression model $tmax = \beta_0 + \beta_1\, tmin + \beta_2\, prcp + \varepsilon$ to extract the estimated quantities $\widehat{r}^2$ and $\widehat{\beta}_1 / \widehat{\beta}_2$. For each bootstrap sample, the model is re-fit, and the two quantities of interest are extracted using `broom::glance()` for $\widehat{r}^2$ and `broom::tidy()` for $\widehat{\beta}_1 / \widehat{\beta}_2$.
 
 ```{r}
 set.seed(1)
@@ -174,6 +175,7 @@ boot_ratio <-
 ```
 
 
+The plots below show the bootstrap sampling distributions for both estimated quantities. The distribution of $\widehat{r}^2$ is tightly concentrated, reflecting the strong linear relationship between minimum and maximum temperature. In contrast, the bootstrap distribution of the coefficient ratio $\widehat{\beta}_1 / \widehat{\beta}_2$ is much more variable and noticeably left-skewed. This increased variability and skewness are consistent with the relatively small and unstable estimated effect of precipitation in the regression model.
 
 ```{r}
 boot_summary <- 
@@ -186,16 +188,24 @@ boot_summary |>
     names_to = "quantity", 
     values_to = "value", 
   ) |> 
+  mutate(
+    quantity = recode(
+      quantity, 
+      "r2" = "hat(r)^2",
+      "beta_ratio" = "hat(beta)[1] / hat(beta)[2]")
+  ) |> 
   ggplot(aes(x = value)) +
-  geom_density(color = "blue") + facet_wrap(~ quantity, scales = "free") +
-  theme_minimal() +
+  geom_density(color = "blue") + facet_wrap(~ quantity, scales = "free", labeller = label_parsed) +
   labs(
-    title = "Bootstrap distributions of r̂² and and β̂₁/β̂₂",
+    title = expression(
+      "Bootstrap distributions of " * hat(r)^2 * " and " * hat(beta)[1] / hat(beta)[2]
+    ),
     x = "Bootstrap Estimate", 
-    y = "Count"
+    y = "Density"
   )
 ```
 
+The code below identifies the 2.5% and 97.5% quantiles of each bootstrap distribution to construct 95% confidence intervals for the estimated quantities.
 
 ```{r}
 boot_summary |> 
@@ -206,4 +216,3 @@ boot_summary |>
     ratio_upper = quantile(beta_ratio, 0.975)
   )
 ```
-
