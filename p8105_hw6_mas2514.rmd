@@ -319,3 +319,14 @@ main_effects_model <-
 main_effects_model |> 
   broom::tidy()
 ```
+
+
+For comparison, the code below fits an interaction model including head circumference, birth length, sex, and all corresponding interaction terms (including the three-way interaction).
+
+```{r interactions_model}
+interactions_model <- 
+  lm(birth_wt ~  birth_length * head_circumference * sex, data = birthweight_df) 
+
+interactions_model |> 
+  broom::tidy()
+```
