@@ -308,3 +308,14 @@ birthweight_df |>
     title = "Residuals vs Fitted Values for Proposed Model"
   )
 ```
+
+
+For comparison, the code below fits a main-effects model including only birth length and gestational age as predictors. 
+
+```{r main_effects_model}
+main_effects_model <- 
+  lm(birth_wt ~ birth_length + gestational_age, data = birthweight_df) 
+  
+main_effects_model |> 
+  broom::tidy()
+```
