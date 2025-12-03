@@ -6,6 +6,8 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(modelr)
+library(mgcv)
 library(p8105.datasets)
 
 knitr::opts_chunk$set(
@@ -26,6 +28,7 @@ options(
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
+
 
 ## Problem 1
 
@@ -215,4 +218,61 @@ boot_summary |>
     ratio_lower = quantile(beta_ratio, 0.025), 
     ratio_upper = quantile(beta_ratio, 0.975)
   )
+```
+
+
+## Problem 3
+
+The code below imports the birthweight dataset, which contains detailed information on approximately 4,000 infants and their mothers. Each row represents a single birth, and the dataset includes variables describing infant characteristics (e.g., sex, birthweight, head circumference, and length), maternal and paternal demographic factors, maternal health indicators, and pregnancy-related behaviors. Key variables include `bwt` (birthweight in grams), `blength` and `bhead` (infant length and head circumference at birth), `gaweeks` (gestational age in weeks), and several maternal characteristics such as pre-pregnancy BMI, weight gain during pregnancy, smoking, and age at delivery.
+
+```{r}
+birthweight_df <- read_csv("data/birthweight.csv")
+```
+
+
+To prepare the dataset for regression analysis, descriptive variable names were applied and several numeric variables were converted to factors to better reflect their categorical structure. The dataset was then assessed for completeness by computing the number of missing values in each variable. As shown below, all variables contain zero missing values so no additional filtering is required.
+
+```{r}
+birthweight_df <-
+  birthweight_df |> 
+  rename(
+    sex = babysex, 
+    head_circumference = bhead, 
+    birth_length = blength,
+    birth_wt = bwt, 
+    mom_wt_delivery = delwt, 
+    monthly_income = fincome, 
+    dad_race = frace, 
+    mom_race = mrace, 
+    gestational_age = gaweeks, 
+    malformations = malform,
+    mom_age_menarche = menarche, 
+    mom_height = mheight, 
+    mom_age_delivery = momage, 
+    count_past_lbwt = pnumlbw,
+    count_past_small_ga = pnumsga, 
+    mom_pre_bmi = ppbmi, 
+    mom_pre_wt = ppwt, 
+    count_smoke = smoken, 
+    mom_wt_gain = wtgain
+  ) |> 
+  mutate(
+    sex = factor(sex, levels = c(1,2), labels = c("Male", "Female")), 
+    dad_race = factor(
+      dad_race,
+      levels = c(1,2,3,4,8,9),
+      labels = c("White", "Black", "Asian", "Puerto Rican", "Other", "Unknown")), 
+    mom_race = factor(
+      mom_race, 
+      levels = c(1,2,3,4,8),
+      labels = c("White", "Black", "Asian", "Puerto Rican", "Other")), 
+    malformations = factor(
+      malformations, 
+      levels = c(0, 1),
+      labels = c("absent", "present"))
+    ) 
+
+
+birthweight_df |> 
+  summarise(across(everything(), ~ sum(is.na(.))))
 ```
